@@ -44,4 +44,24 @@ void main() {
   print(str1.runtimeType); // 输出 String
   print(numStr.runtimeType); // 输出 String
   print(nStr.runtimeType); // 输出 String
+
+  //Dart字符串是UTF-16编码单元的序列。您可以使用单引号或双引号创建一个字符串:
+  // 注意: Dart 中的字符串是不可变的，一旦创建就不能修改。每次对字符串进行修改操作，都会创建一个新的字符串对象。
+  // 这意味着字符串的拼接、替换等操作会创建新的字符串，而不会修改原有字符串。
+
+  var s1 = 'Hello, Dart!'; // 单引号字符串
+  var s2 = "Hello, Dart!"; // 双引号字符串
+  var s3 = '''Hello,
+  Dart!'''; // 三引号字符串（多行字符串）
+  var s4 = """Hello,
+  Dart!"""; // 三引号字符串（多行字符串）
+  print(s1);
+  print(s2);
+  print(s3);
+  print(s4);
+  // 3.拼接其他变量
+  var name = 'Dart';
+  var age = 10;
+  var height = 1.75;
+  print('Name: $name, Age: $age, Height: $height'); // 使用 $ 符号插入变量
 }
