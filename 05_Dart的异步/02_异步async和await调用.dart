@@ -1,5 +1,7 @@
 // Dart 异步编程示例
 import 'dart:async';
+import 'dart:isolate';
+import 'dart:math';
 
 void main() async {
   print('程序开始执行');
@@ -57,6 +59,14 @@ void main() async {
   // 9. 使用 Completer 手动控制异步操作
   print('\n--- 使用 Completer 手动控制异步操作 ---');
   await completerExample();
+
+  // 10. 使用 Isolate 进行并发计算
+  print('\n--- 使用 Isolate 进行并发计算 ---');
+  await isolateExample();
+
+  // 11. 使用 compute 函数简化 Isolate 使用
+  print('\n--- 使用 compute 函数 ---');
+  await computeExample();
 
   print('\n程序执行结束');
 }
@@ -241,4 +251,97 @@ Future<String> manualAsyncOperation() {
   });
 
   return completer.future;
+}
+
+// ----- Isolate 和 compute 相关示例 ----
+
+// Isolate 示例 - 计算大量斐波那契数列
+Future<void> isolateExample() async {
+  print('在主 Isolate 中执行...');
+  final stopwatch = Stopwatch()..start();
+
+  // 创建一个接收端口来接收消息
+  final receivePort = ReceivePort();
+
+  // 启动新的 Isolate
+  print('启动计算 Isolate...');
+  await Isolate.spawn(calculateFibonacciInIsolate, [40, receivePort.sendPort]);
+
+  // 等待结果
+  final result = await receivePort.first as int;
+  stopwatch.stop();
+
+  print('计算结果: $result');
+  print('耗时: ${stopwatch.elapsedMilliseconds} 毫秒');
+}
+
+// 这个函数在单独的 Isolate 中运行
+void calculateFibonacciInIsolate(List<dynamic> args) {
+  final n = args[0] as int;
+  final sendPort = args[1] as SendPort;
+
+  // 计算斐波那契数
+  final result = fibonacci(n);
+
+  // 发送结果回主 Isolate
+  sendPort.send(result);
+}
+
+// 使用 compute 函数示例
+Future<void> computeExample() async {
+  print('使用 compute 函数简化 Isolate 使用...');
+  final stopwatch = Stopwatch()..start();
+
+  // 使用 compute 函数在单独的 Isolate 中执行计算
+  final result = await compute(fibonacci, 40);
+
+  stopwatch.stop();
+  print('计算结果: $result');
+  print('耗时: ${stopwatch.elapsedMilliseconds} 毫秒');
+
+  // 处理一个列表
+  print('\n处理列表数据...');
+  final List<int> numbers = List.generate(10000, (i) => i);
+  final processedData = await compute(processNumbers, numbers);
+
+  print('处理后的数据 (前 5 个): ${processedData.take(5).toList()}');
+  print('处理后的数据总和: ${processedData.reduce((a, b) => a + b)}');
+}
+
+// 用于计算斐波那契数的函数
+int fibonacci(int n) {
+  if (n <= 1) return n;
+  return fibonacci(n - 1) + fibonacci(n - 2);
+}
+
+// 用于处理大量数据的函数
+List<int> processNumbers(List<int> numbers) {
+  // 模拟复杂计算 - 对每个数字进行平方和开平方根操作
+  return numbers.map((n) => sqrt(n * n).round()).toList();
+}
+
+// Flutter 中 compute 函数的模拟实现
+Future<R> compute<Q, R>(Function(Q message) callback, Q message) async {
+  final responsePort = ReceivePort();
+  final args = [callback, message, responsePort.sendPort];
+
+  final isolate = await Isolate.spawn(_isolateEntry, args);
+  final response = await responsePort.first as R;
+
+  // 完成后销毁 Isolate
+  responsePort.close();
+  isolate.kill();
+
+  return response;
+}
+
+// Isolate 入口点
+void _isolateEntry(List<dynamic> args) {
+  final callback = args[0] as Function;
+  final message = args[1];
+  final sendPort = args[2] as SendPort;
+
+  // 执行回调并返回结果
+  final result = callback(message);
+  sendPort.send(result);
 }
